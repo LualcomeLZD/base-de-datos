@@ -18,6 +18,7 @@ La base de datos guarda estos campos por integrante:
 - Nombre
 - Cédula
 - Teléfono
+- Lugar de votación
 - Cargo
 
 Los cargos disponibles son:
@@ -31,13 +32,13 @@ La cédula no se puede repetir, para evitar registrar dos veces a la misma perso
 
 ## Opciones de la interfaz
 
-La aplicación muestra tres botones principales:
+La aplicación abre en una pantalla de inicio con botones. Desde esa pantalla se puede entrar a cada sección sin que todo se muestre de golpe:
 
-- **Integrantes**: muestra todos los integrantes registrados y permite crear, editar o eliminar personas.
-- **Malla de transmisión**: muestra los integrantes con cargo de transmisor, backup o coordinador de puesto.
-- **Malla de recolección**: muestra los integrantes con cargo de recolector, backup o coordinador de puesto.
+- **Integrantes**: abre el formulario para crear, editar, limpiar o eliminar integrantes. También muestra el listado completo de integrantes registrados.
+- **Malla de transmisión**: muestra un informe/listado de integrantes con cargo **Transmisor**, **Backup** o **Coordinador de puesto**.
+- **Malla de recolección**: muestra un informe/listado de integrantes con cargo **Recolector** o **Backup**.
 
-Para asignar a una persona a una malla, edita su **Cargo** en la sección de integrantes. Por ejemplo, si seleccionas el cargo **Transmisor**, esa persona aparecerá en la **Malla de transmisión**; si seleccionas **Recolector**, aparecerá en la **Malla de recolección**.
+Para asignar a una persona a una malla, entra a **Integrantes** y selecciona su **Cargo**. Por ejemplo, si seleccionas **Transmisor** o **Coordinador de puesto**, esa persona aparecerá en la **Malla de transmisión**. Si seleccionas **Recolector**, aparecerá en la **Malla de recolección**.
 
 ## Cómo ejecutar la aplicación
 
@@ -48,18 +49,18 @@ Para asignar a una persona a una malla, edita su **Cargo** en la sección de int
    python app.py
    ```
 
-3. Usa la ventana para guardar, editar, eliminar o revisar integrantes por malla.
+3. Usa la pantalla inicial para entrar a **Integrantes**, **Malla de transmisión** o **Malla de recolección**.
 
 ## Uso básico
 
-- Para registrar una persona, escribe nombre, cédula, teléfono y cargo, y presiona **Guardar**.
-- Para editar una persona, selecciónala en la tabla, cambia los datos y presiona **Guardar**.
-- Para eliminar una persona, selecciónala en la tabla y presiona **Eliminar**.
+- Para registrar una persona, entra a **Integrantes**, escribe nombre, cédula, teléfono, lugar de votación y cargo, y presiona **Guardar**.
+- Para editar una persona, entra a **Integrantes**, selecciónala en la tabla, cambia los datos y presiona **Guardar**.
+- Para eliminar una persona, entra a **Integrantes**, selecciónala en la tabla y presiona **Eliminar**.
 - Para iniciar un registro nuevo, presiona **Limpiar**.
-- Para cambiar entre listados, usa los botones **Integrantes**, **Malla de transmisión** y **Malla de recolección**.
+- Para ver los informes, usa los botones **Malla de transmisión** y **Malla de recolección**.
 
 ## Archivo de datos
 
 Cuando se ejecuta la aplicación, se crea automáticamente el archivo `equipo_plato.db` en esta carpeta. Ese archivo contiene la base de datos local.
 
-Si ya tenías una base creada con una versión anterior de la aplicación, el campo **Cargo** se agrega automáticamente al abrir el programa y los integrantes existentes quedan inicialmente como **Recolector**.
+Si ya tenías una base creada con una versión anterior de la aplicación, los campos **Cargo** y **Lugar de votación** se agregan automáticamente al abrir el programa. Los integrantes existentes quedan inicialmente como **Recolector** y con el lugar de votación vacío hasta que los edites.

@@ -16,7 +16,15 @@ APP_TITLE = "Equipo de Transmisión y Recolección Plato"
 DB_PATH = Path(__file__).with_name("equipo_plato.db")
 CARGOS = ("Recolector", "Transmisor", "Backup", "Coordinador de puesto")
 MALLA_TRANSMISION_CARGOS = ("Transmisor", "Backup", "Coordinador de puesto")
-MALLA_RECOLECCION_CARGOS = ("Recolector", "Backup", "Coordinador de puesto")
+MALLA_RECOLECCION_CARGOS = ("Recolector", "Backup")
+TABLE_COLUMNS = ("nombre", "cedula", "telefono", "lugar_votacion", "cargo")
+COLUMN_TITLES = {
+    "nombre": "Nombre",
+    "cedula": "Cédula",
+    "telefono": "Teléfono",
+    "lugar_votacion": "Lugar de votación",
+    "cargo": "Cargo",
+}
 
 
 class MemberDatabase:
@@ -25,7 +33,13 @@ class MemberDatabase:
     def __init__(self, db_path: Path = DB_PATH) -> None:
         self.db_path = db_path
         self._create_table()
-        self._ensure_cargo_column()
+        self._ensure_column(
+            "cargo", "ALTER TABLE integrantes ADD COLUMN cargo TEXT NOT NULL DEFAULT 'Recolector'"
+        )
+        self._ensure_column(
+            "lugar_votacion",
+            "ALTER TABLE integrantes ADD COLUMN lugar_votacion TEXT NOT NULL DEFAULT ''",
+        )
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.db_path)
@@ -39,36 +53,39 @@ class MemberDatabase:
                     nombre TEXT NOT NULL,
                     cedula TEXT NOT NULL UNIQUE,
                     telefono TEXT NOT NULL,
+                    lugar_votacion TEXT NOT NULL DEFAULT '',
                     cargo TEXT NOT NULL DEFAULT 'Recolector'
                 )
                 """
             )
 
-    def _ensure_cargo_column(self) -> None:
-        """Agrega la columna cargo si la base ya existía con la versión anterior."""
+    def _ensure_column(self, column_name: str, alter_statement: str) -> None:
+        """Agrega una columna si la base ya existía con una versión anterior."""
 
         with self._connect() as connection:
             columns = {
                 row[1] for row in connection.execute("PRAGMA table_info(integrantes)").fetchall()
             }
-            if "cargo" not in columns:
-                connection.execute(
-                    "ALTER TABLE integrantes ADD COLUMN cargo TEXT NOT NULL DEFAULT 'Recolector'"
-                )
+            if column_name not in columns:
+                connection.execute(alter_statement)
 
     def list_members(
         self, cargos: tuple[str, ...] | None = None
-    ) -> list[tuple[int, str, str, str, str]]:
+    ) -> list[tuple[int, str, str, str, str, str]]:
         with self._connect() as connection:
             if cargos is None:
                 return connection.execute(
-                    "SELECT id, nombre, cedula, telefono, cargo FROM integrantes ORDER BY nombre"
+                    """
+                    SELECT id, nombre, cedula, telefono, lugar_votacion, cargo
+                    FROM integrantes
+                    ORDER BY nombre
+                    """
                 ).fetchall()
 
             placeholders = ",".join("?" for _cargo in cargos)
             return connection.execute(
                 f"""
-                SELECT id, nombre, cedula, telefono, cargo
+                SELECT id, nombre, cedula, telefono, lugar_votacion, cargo
                 FROM integrantes
                 WHERE cargo IN ({placeholders})
                 ORDER BY cargo, nombre
@@ -76,27 +93,35 @@ class MemberDatabase:
                 cargos,
             ).fetchall()
 
-    def add_member(self, nombre: str, cedula: str, telefono: str, cargo: str) -> None:
+    def add_member(
+        self, nombre: str, cedula: str, telefono: str, lugar_votacion: str, cargo: str
+    ) -> None:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO integrantes (nombre, cedula, telefono, cargo)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO integrantes (nombre, cedula, telefono, lugar_votacion, cargo)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (nombre, cedula, telefono, cargo),
+                (nombre, cedula, telefono, lugar_votacion, cargo),
             )
 
     def update_member(
-        self, member_id: int, nombre: str, cedula: str, telefono: str, cargo: str
+        self,
+        member_id: int,
+        nombre: str,
+        cedula: str,
+        telefono: str,
+        lugar_votacion: str,
+        cargo: str,
     ) -> None:
         with self._connect() as connection:
             connection.execute(
                 """
                 UPDATE integrantes
-                SET nombre = ?, cedula = ?, telefono = ?, cargo = ?
+                SET nombre = ?, cedula = ?, telefono = ?, lugar_votacion = ?, cargo = ?
                 WHERE id = ?
                 """,
-                (nombre, cedula, telefono, cargo, member_id),
+                (nombre, cedula, telefono, lugar_votacion, cargo, member_id),
             )
 
     def delete_member(self, member_id: int) -> None:
@@ -105,31 +130,32 @@ class MemberDatabase:
 
 
 class TeamApp(tk.Tk):
-    """Interfaz gráfica sencilla para registrar, editar y borrar integrantes."""
+    """Interfaz con menú de botones para integrantes y reportes por malla."""
 
     def __init__(self) -> None:
         super().__init__()
         self.title(APP_TITLE)
-        self.geometry("940x620")
-        self.minsize(860, 560)
+        self.geometry("1040x660")
+        self.minsize(920, 580)
         self.database = MemberDatabase()
         self.selected_member_id: int | None = None
 
         self.nombre_var = tk.StringVar()
         self.cedula_var = tk.StringVar()
         self.telefono_var = tk.StringVar()
+        self.lugar_votacion_var = tk.StringVar()
         self.cargo_var = tk.StringVar(value=CARGOS[0])
-        self.current_view = "integrantes"
 
         self._build_layout()
-        self.show_integrantes()
+        self.show_home()
 
     def _build_layout(self) -> None:
         title = ttk.Label(self, text=APP_TITLE, font=("Arial", 18, "bold"))
         title.pack(pady=(16, 8))
 
         menu = ttk.Frame(self)
-        menu.pack(fill="x", padx=16, pady=(0, 8))
+        menu.pack(fill="x", padx=16, pady=(0, 10))
+        ttk.Button(menu, text="Inicio", command=self.show_home).pack(side="left", padx=4)
         ttk.Button(menu, text="Integrantes", command=self.show_integrantes).pack(side="left", padx=4)
         ttk.Button(menu, text="Malla de transmisión", command=self.show_malla_transmision).pack(
             side="left", padx=4
@@ -138,8 +164,44 @@ class TeamApp(tk.Tk):
             side="left", padx=4
         )
 
-        form = ttk.LabelFrame(self, text="Datos del integrante")
-        form.pack(fill="x", padx=16, pady=8)
+        self.content = ttk.Frame(self)
+        self.content.pack(fill="both", expand=True, padx=16, pady=(0, 16))
+        self.content.columnconfigure(0, weight=1)
+        self.content.rowconfigure(0, weight=1)
+
+        self.home_frame = ttk.Frame(self.content)
+        self.integrantes_frame = ttk.Frame(self.content)
+        self.report_frame = ttk.Frame(self.content)
+        for frame in (self.home_frame, self.integrantes_frame, self.report_frame):
+            frame.grid(row=0, column=0, sticky="nsew")
+
+        self._build_home_frame()
+        self._build_integrantes_frame()
+        self._build_report_frame()
+
+    def _build_home_frame(self) -> None:
+        self.home_frame.columnconfigure(0, weight=1)
+        ttk.Label(
+            self.home_frame,
+            text="Seleccione una opción para continuar",
+            font=("Arial", 16, "bold"),
+        ).grid(row=0, column=0, pady=(36, 16))
+        ttk.Button(self.home_frame, text="Integrantes", command=self.show_integrantes).grid(
+            row=1, column=0, pady=8, ipadx=50, ipady=10
+        )
+        ttk.Button(
+            self.home_frame, text="Malla de transmisión", command=self.show_malla_transmision
+        ).grid(row=2, column=0, pady=8, ipadx=50, ipady=10)
+        ttk.Button(
+            self.home_frame, text="Malla de recolección", command=self.show_malla_recoleccion
+        ).grid(row=3, column=0, pady=8, ipadx=50, ipady=10)
+
+    def _build_integrantes_frame(self) -> None:
+        self.integrantes_frame.rowconfigure(1, weight=1)
+        self.integrantes_frame.columnconfigure(0, weight=1)
+
+        form = ttk.LabelFrame(self.integrantes_frame, text="Datos del integrante")
+        form.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         form.columnconfigure(1, weight=1)
         form.columnconfigure(3, weight=1)
 
@@ -158,85 +220,117 @@ class TeamApp(tk.Tk):
             row=1, column=1, padx=8, pady=8, sticky="ew"
         )
 
-        ttk.Label(form, text="Cargo").grid(row=1, column=2, padx=8, pady=8, sticky="w")
-        cargo_select = ttk.Combobox(
+        ttk.Label(form, text="Lugar de votación").grid(
+            row=1, column=2, padx=8, pady=8, sticky="w"
+        )
+        ttk.Entry(form, textvariable=self.lugar_votacion_var).grid(
+            row=1, column=3, padx=8, pady=8, sticky="ew"
+        )
+
+        ttk.Label(form, text="Cargo").grid(row=2, column=0, padx=8, pady=8, sticky="w")
+        ttk.Combobox(
             form,
             textvariable=self.cargo_var,
             values=CARGOS,
             state="readonly",
-        )
-        cargo_select.grid(row=1, column=3, padx=8, pady=8, sticky="ew")
+        ).grid(row=2, column=1, padx=8, pady=8, sticky="ew")
 
         buttons = ttk.Frame(form)
-        buttons.grid(row=2, column=0, columnspan=4, padx=8, pady=(4, 10), sticky="e")
+        buttons.grid(row=3, column=0, columnspan=4, padx=8, pady=(4, 10), sticky="e")
         ttk.Button(buttons, text="Guardar", command=self.save_member).pack(side="left", padx=4)
         ttk.Button(buttons, text="Limpiar", command=self.clear_form).pack(side="left", padx=4)
         ttk.Button(buttons, text="Eliminar", command=self.delete_selected_member).pack(
             side="left", padx=4
         )
 
-        table_frame = ttk.LabelFrame(self, text="Integrantes registrados")
-        table_frame.pack(fill="both", expand=True, padx=16, pady=(4, 16))
-        self.table_frame = table_frame
+        table_frame = ttk.LabelFrame(self.integrantes_frame, text="Integrantes registrados")
+        table_frame.grid(row=1, column=0, sticky="nsew")
+        table_frame.rowconfigure(0, weight=1)
+        table_frame.columnconfigure(0, weight=1)
+        self.members_table = self._create_table(table_frame)
+        self.members_table.bind("<<TreeviewSelect>>", self.load_selected_member)
 
-        columns = ("nombre", "cedula", "telefono", "cargo")
-        self.table = ttk.Treeview(table_frame, columns=columns, show="headings", height=12)
-        self.table.heading("nombre", text="Nombre")
-        self.table.heading("cedula", text="Cédula")
-        self.table.heading("telefono", text="Teléfono")
-        self.table.heading("cargo", text="Cargo")
-        self.table.column("nombre", width=260)
-        self.table.column("cedula", width=150)
-        self.table.column("telefono", width=150)
-        self.table.column("cargo", width=190)
-        self.table.bind("<<TreeviewSelect>>", self.load_selected_member)
+    def _build_report_frame(self) -> None:
+        self.report_frame.rowconfigure(1, weight=1)
+        self.report_frame.columnconfigure(0, weight=1)
+        self.report_title = ttk.Label(self.report_frame, font=("Arial", 14, "bold"))
+        self.report_title.grid(row=0, column=0, sticky="w", pady=(0, 10))
+        table_frame = ttk.LabelFrame(self.report_frame, text="Listado")
+        table_frame.grid(row=1, column=0, sticky="nsew")
+        table_frame.rowconfigure(0, weight=1)
+        table_frame.columnconfigure(0, weight=1)
+        self.report_table = self._create_table(table_frame)
 
-        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.table.yview)
-        self.table.configure(yscrollcommand=scrollbar.set)
-        self.table.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+    def _create_table(self, parent: ttk.Frame) -> ttk.Treeview:
+        table = ttk.Treeview(parent, columns=TABLE_COLUMNS, show="headings", height=14)
+        widths = {
+            "nombre": 220,
+            "cedula": 130,
+            "telefono": 130,
+            "lugar_votacion": 230,
+            "cargo": 180,
+        }
+        for column in TABLE_COLUMNS:
+            table.heading(column, text=COLUMN_TITLES[column])
+            table.column(column, width=widths[column])
+
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=table.yview)
+        table.configure(yscrollcommand=scrollbar.set)
+        table.grid(row=0, column=0, sticky="nsew")
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        return table
+
+    def show_home(self) -> None:
+        self.clear_form()
+        self.home_frame.tkraise()
 
     def show_integrantes(self) -> None:
-        self.current_view = "integrantes"
-        self.table_frame.configure(text="Integrantes registrados")
-        self.refresh_members()
+        self.integrantes_frame.tkraise()
+        self.refresh_members_table()
 
     def show_malla_transmision(self) -> None:
-        self.current_view = "transmision"
-        self.table_frame.configure(text="Malla de transmisión")
-        self.refresh_members(MALLA_TRANSMISION_CARGOS)
+        self._show_report(
+            "Malla de transmisión: transmisores, backup y coordinadores de puesto",
+            MALLA_TRANSMISION_CARGOS,
+        )
 
     def show_malla_recoleccion(self) -> None:
-        self.current_view = "recoleccion"
-        self.table_frame.configure(text="Malla de recolección")
-        self.refresh_members(MALLA_RECOLECCION_CARGOS)
+        self._show_report("Malla de recolección: recolectores y backup", MALLA_RECOLECCION_CARGOS)
 
-    def refresh_members(self, cargos: tuple[str, ...] | None = None) -> None:
-        for item in self.table.get_children():
-            self.table.delete(item)
+    def _show_report(self, title: str, cargos: tuple[str, ...]) -> None:
+        self.clear_form()
+        self.report_title.configure(text=title)
+        self.refresh_table(self.report_table, cargos)
+        self.report_frame.tkraise()
 
-        for member_id, nombre, cedula, telefono, cargo in self.database.list_members(cargos):
-            self.table.insert(
-                "", "end", iid=str(member_id), values=(nombre, cedula, telefono, cargo)
+    def refresh_members_table(self) -> None:
+        self.refresh_table(self.members_table)
+
+    def refresh_table(self, table: ttk.Treeview, cargos: tuple[str, ...] | None = None) -> None:
+        for item in table.get_children():
+            table.delete(item)
+
+        for member_id, nombre, cedula, telefono, lugar_votacion, cargo in self.database.list_members(
+            cargos
+        ):
+            table.insert(
+                "",
+                "end",
+                iid=str(member_id),
+                values=(nombre, cedula, telefono, lugar_votacion, cargo),
             )
 
-    def refresh_current_view(self) -> None:
-        if self.current_view == "transmision":
-            self.show_malla_transmision()
-        elif self.current_view == "recoleccion":
-            self.show_malla_recoleccion()
-        else:
-            self.show_integrantes()
-
-    def _validated_inputs(self) -> tuple[str, str, str, str] | None:
+    def _validated_inputs(self) -> tuple[str, str, str, str, str] | None:
         nombre = self.nombre_var.get().strip()
         cedula = self.cedula_var.get().strip()
         telefono = self.telefono_var.get().strip()
+        lugar_votacion = self.lugar_votacion_var.get().strip()
         cargo = self.cargo_var.get().strip()
 
-        if not nombre or not cedula or not telefono or not cargo:
+        if not nombre or not cedula or not telefono or not lugar_votacion or not cargo:
             messagebox.showwarning(
-                "Campos incompletos", "Complete nombre, cédula, teléfono y cargo."
+                "Campos incompletos",
+                "Complete nombre, cédula, teléfono, lugar de votación y cargo.",
             )
             return None
 
@@ -244,21 +338,26 @@ class TeamApp(tk.Tk):
             messagebox.showwarning("Cargo inválido", "Seleccione un cargo válido de la lista.")
             return None
 
-        return nombre, cedula, telefono, cargo
+        return nombre, cedula, telefono, lugar_votacion, cargo
 
     def save_member(self) -> None:
         values = self._validated_inputs()
         if values is None:
             return
 
-        nombre, cedula, telefono, cargo = values
+        nombre, cedula, telefono, lugar_votacion, cargo = values
         try:
             if self.selected_member_id is None:
-                self.database.add_member(nombre, cedula, telefono, cargo)
+                self.database.add_member(nombre, cedula, telefono, lugar_votacion, cargo)
                 messagebox.showinfo("Guardado", "Integrante registrado correctamente.")
             else:
                 self.database.update_member(
-                    self.selected_member_id, nombre, cedula, telefono, cargo
+                    self.selected_member_id,
+                    nombre,
+                    cedula,
+                    telefono,
+                    lugar_votacion,
+                    cargo,
                 )
                 messagebox.showinfo("Actualizado", "Integrante actualizado correctamente.")
         except sqlite3.IntegrityError:
@@ -266,18 +365,21 @@ class TeamApp(tk.Tk):
             return
 
         self.clear_form()
-        self.refresh_current_view()
+        self.refresh_members_table()
 
     def load_selected_member(self, _event: tk.Event[tk.Misc]) -> None:
-        selected = self.table.selection()
+        selected = self.members_table.selection()
         if not selected:
             return
 
         self.selected_member_id = int(selected[0])
-        nombre, cedula, telefono, cargo = self.table.item(selected[0], "values")
+        nombre, cedula, telefono, lugar_votacion, cargo = self.members_table.item(
+            selected[0], "values"
+        )
         self.nombre_var.set(nombre)
         self.cedula_var.set(cedula)
         self.telefono_var.set(telefono)
+        self.lugar_votacion_var.set(lugar_votacion)
         self.cargo_var.set(cargo)
 
     def delete_selected_member(self) -> None:
@@ -291,7 +393,7 @@ class TeamApp(tk.Tk):
 
         self.database.delete_member(self.selected_member_id)
         self.clear_form()
-        self.refresh_current_view()
+        self.refresh_members_table()
         messagebox.showinfo("Eliminado", "Integrante eliminado correctamente.")
 
     def clear_form(self) -> None:
@@ -299,8 +401,10 @@ class TeamApp(tk.Tk):
         self.nombre_var.set("")
         self.cedula_var.set("")
         self.telefono_var.set("")
+        self.lugar_votacion_var.set("")
         self.cargo_var.set(CARGOS[0])
-        self.table.selection_remove(self.table.selection())
+        if hasattr(self, "members_table"):
+            self.members_table.selection_remove(self.members_table.selection())
 
 
 def main() -> None:
