@@ -13,16 +13,17 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 APP_TITLE = "Equipo de Transmisión y Recolección Plato"
+APP_VERSION = "Versión: secciones por botones + institución/puesto de trabajo"
 DB_PATH = Path(__file__).with_name("equipo_plato.db")
 CARGOS = ("Recolector", "Transmisor", "Backup", "Coordinador de puesto")
 MALLA_TRANSMISION_CARGOS = ("Transmisor", "Backup", "Coordinador de puesto")
 MALLA_RECOLECCION_CARGOS = ("Recolector", "Backup")
-TABLE_COLUMNS = ("nombre", "cedula", "telefono", "lugar_votacion", "cargo")
+TABLE_COLUMNS = ("nombre", "cedula", "telefono", "puesto_trabajo", "cargo")
 COLUMN_TITLES = {
     "nombre": "Nombre",
     "cedula": "Cédula",
     "telefono": "Teléfono",
-    "lugar_votacion": "Lugar de votación",
+    "puesto_trabajo": "Institución / puesto de trabajo",
     "cargo": "Cargo",
 }
 
@@ -37,9 +38,10 @@ class MemberDatabase:
             "cargo", "ALTER TABLE integrantes ADD COLUMN cargo TEXT NOT NULL DEFAULT 'Recolector'"
         )
         self._ensure_column(
-            "lugar_votacion",
-            "ALTER TABLE integrantes ADD COLUMN lugar_votacion TEXT NOT NULL DEFAULT ''",
+            "puesto_trabajo",
+            "ALTER TABLE integrantes ADD COLUMN puesto_trabajo TEXT NOT NULL DEFAULT ''",
         )
+        self._migrate_legacy_voting_place_data()
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.db_path)
@@ -53,7 +55,7 @@ class MemberDatabase:
                     nombre TEXT NOT NULL,
                     cedula TEXT NOT NULL UNIQUE,
                     telefono TEXT NOT NULL,
-                    lugar_votacion TEXT NOT NULL DEFAULT '',
+                    puesto_trabajo TEXT NOT NULL DEFAULT '',
                     cargo TEXT NOT NULL DEFAULT 'Recolector'
                 )
                 """
@@ -69,6 +71,22 @@ class MemberDatabase:
             if column_name not in columns:
                 connection.execute(alter_statement)
 
+    def _migrate_legacy_voting_place_data(self) -> None:
+        """Copia datos guardados antes como lugar_votacion al nuevo campo puesto_trabajo."""
+
+        with self._connect() as connection:
+            columns = {
+                row[1] for row in connection.execute("PRAGMA table_info(integrantes)").fetchall()
+            }
+            if "lugar_votacion" in columns and "puesto_trabajo" in columns:
+                connection.execute(
+                    """
+                    UPDATE integrantes
+                    SET puesto_trabajo = lugar_votacion
+                    WHERE puesto_trabajo = '' AND lugar_votacion <> ''
+                    """
+                )
+
     def list_members(
         self, cargos: tuple[str, ...] | None = None
     ) -> list[tuple[int, str, str, str, str, str]]:
@@ -76,7 +94,7 @@ class MemberDatabase:
             if cargos is None:
                 return connection.execute(
                     """
-                    SELECT id, nombre, cedula, telefono, lugar_votacion, cargo
+                    SELECT id, nombre, cedula, telefono, puesto_trabajo, cargo
                     FROM integrantes
                     ORDER BY nombre
                     """
@@ -85,7 +103,7 @@ class MemberDatabase:
             placeholders = ",".join("?" for _cargo in cargos)
             return connection.execute(
                 f"""
-                SELECT id, nombre, cedula, telefono, lugar_votacion, cargo
+                SELECT id, nombre, cedula, telefono, puesto_trabajo, cargo
                 FROM integrantes
                 WHERE cargo IN ({placeholders})
                 ORDER BY cargo, nombre
@@ -94,15 +112,15 @@ class MemberDatabase:
             ).fetchall()
 
     def add_member(
-        self, nombre: str, cedula: str, telefono: str, lugar_votacion: str, cargo: str
+        self, nombre: str, cedula: str, telefono: str, puesto_trabajo: str, cargo: str
     ) -> None:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO integrantes (nombre, cedula, telefono, lugar_votacion, cargo)
+                INSERT INTO integrantes (nombre, cedula, telefono, puesto_trabajo, cargo)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                (nombre, cedula, telefono, lugar_votacion, cargo),
+                (nombre, cedula, telefono, puesto_trabajo, cargo),
             )
 
     def update_member(
@@ -111,17 +129,17 @@ class MemberDatabase:
         nombre: str,
         cedula: str,
         telefono: str,
-        lugar_votacion: str,
+        puesto_trabajo: str,
         cargo: str,
     ) -> None:
         with self._connect() as connection:
             connection.execute(
                 """
                 UPDATE integrantes
-                SET nombre = ?, cedula = ?, telefono = ?, lugar_votacion = ?, cargo = ?
+                SET nombre = ?, cedula = ?, telefono = ?, puesto_trabajo = ?, cargo = ?
                 WHERE id = ?
                 """,
-                (nombre, cedula, telefono, lugar_votacion, cargo, member_id),
+                (nombre, cedula, telefono, puesto_trabajo, cargo, member_id),
             )
 
     def delete_member(self, member_id: int) -> None:
@@ -143,7 +161,7 @@ class TeamApp(tk.Tk):
         self.nombre_var = tk.StringVar()
         self.cedula_var = tk.StringVar()
         self.telefono_var = tk.StringVar()
-        self.lugar_votacion_var = tk.StringVar()
+        self.puesto_trabajo_var = tk.StringVar()
         self.cargo_var = tk.StringVar(value=CARGOS[0])
 
         self._build_layout()
@@ -151,7 +169,8 @@ class TeamApp(tk.Tk):
 
     def _build_layout(self) -> None:
         title = ttk.Label(self, text=APP_TITLE, font=("Arial", 18, "bold"))
-        title.pack(pady=(16, 8))
+        title.pack(pady=(16, 4))
+        ttk.Label(self, text=APP_VERSION, font=("Arial", 10, "italic")).pack(pady=(0, 8))
 
         menu = ttk.Frame(self)
         menu.pack(fill="x", padx=16, pady=(0, 10))
@@ -220,10 +239,10 @@ class TeamApp(tk.Tk):
             row=1, column=1, padx=8, pady=8, sticky="ew"
         )
 
-        ttk.Label(form, text="Lugar de votación").grid(
+        ttk.Label(form, text="Institución / puesto de trabajo").grid(
             row=1, column=2, padx=8, pady=8, sticky="w"
         )
-        ttk.Entry(form, textvariable=self.lugar_votacion_var).grid(
+        ttk.Entry(form, textvariable=self.puesto_trabajo_var).grid(
             row=1, column=3, padx=8, pady=8, sticky="ew"
         )
 
@@ -267,7 +286,7 @@ class TeamApp(tk.Tk):
             "nombre": 220,
             "cedula": 130,
             "telefono": 130,
-            "lugar_votacion": 230,
+            "puesto_trabajo": 230,
             "cargo": 180,
         }
         for column in TABLE_COLUMNS:
@@ -310,27 +329,27 @@ class TeamApp(tk.Tk):
         for item in table.get_children():
             table.delete(item)
 
-        for member_id, nombre, cedula, telefono, lugar_votacion, cargo in self.database.list_members(
+        for member_id, nombre, cedula, telefono, puesto_trabajo, cargo in self.database.list_members(
             cargos
         ):
             table.insert(
                 "",
                 "end",
                 iid=str(member_id),
-                values=(nombre, cedula, telefono, lugar_votacion, cargo),
+                values=(nombre, cedula, telefono, puesto_trabajo, cargo),
             )
 
     def _validated_inputs(self) -> tuple[str, str, str, str, str] | None:
         nombre = self.nombre_var.get().strip()
         cedula = self.cedula_var.get().strip()
         telefono = self.telefono_var.get().strip()
-        lugar_votacion = self.lugar_votacion_var.get().strip()
+        puesto_trabajo = self.puesto_trabajo_var.get().strip()
         cargo = self.cargo_var.get().strip()
 
-        if not nombre or not cedula or not telefono or not lugar_votacion or not cargo:
+        if not nombre or not cedula or not telefono or not puesto_trabajo or not cargo:
             messagebox.showwarning(
                 "Campos incompletos",
-                "Complete nombre, cédula, teléfono, lugar de votación y cargo.",
+                "Complete nombre, cédula, teléfono, institución / puesto de trabajo y cargo.",
             )
             return None
 
@@ -338,17 +357,17 @@ class TeamApp(tk.Tk):
             messagebox.showwarning("Cargo inválido", "Seleccione un cargo válido de la lista.")
             return None
 
-        return nombre, cedula, telefono, lugar_votacion, cargo
+        return nombre, cedula, telefono, puesto_trabajo, cargo
 
     def save_member(self) -> None:
         values = self._validated_inputs()
         if values is None:
             return
 
-        nombre, cedula, telefono, lugar_votacion, cargo = values
+        nombre, cedula, telefono, puesto_trabajo, cargo = values
         try:
             if self.selected_member_id is None:
-                self.database.add_member(nombre, cedula, telefono, lugar_votacion, cargo)
+                self.database.add_member(nombre, cedula, telefono, puesto_trabajo, cargo)
                 messagebox.showinfo("Guardado", "Integrante registrado correctamente.")
             else:
                 self.database.update_member(
@@ -356,7 +375,7 @@ class TeamApp(tk.Tk):
                     nombre,
                     cedula,
                     telefono,
-                    lugar_votacion,
+                    puesto_trabajo,
                     cargo,
                 )
                 messagebox.showinfo("Actualizado", "Integrante actualizado correctamente.")
@@ -373,13 +392,13 @@ class TeamApp(tk.Tk):
             return
 
         self.selected_member_id = int(selected[0])
-        nombre, cedula, telefono, lugar_votacion, cargo = self.members_table.item(
+        nombre, cedula, telefono, puesto_trabajo, cargo = self.members_table.item(
             selected[0], "values"
         )
         self.nombre_var.set(nombre)
         self.cedula_var.set(cedula)
         self.telefono_var.set(telefono)
-        self.lugar_votacion_var.set(lugar_votacion)
+        self.puesto_trabajo_var.set(puesto_trabajo)
         self.cargo_var.set(cargo)
 
     def delete_selected_member(self) -> None:
@@ -401,7 +420,7 @@ class TeamApp(tk.Tk):
         self.nombre_var.set("")
         self.cedula_var.set("")
         self.telefono_var.set("")
-        self.lugar_votacion_var.set("")
+        self.puesto_trabajo_var.set("")
         self.cargo_var.set(CARGOS[0])
         if hasattr(self, "members_table"):
             self.members_table.selection_remove(self.members_table.selection())

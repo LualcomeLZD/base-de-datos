@@ -18,7 +18,7 @@ La base de datos guarda estos campos por integrante:
 - Nombre
 - Cédula
 - Teléfono
-- Lugar de votación
+- Institución / puesto de trabajo
 - Cargo
 
 Los cargos disponibles son:
@@ -53,14 +53,21 @@ Para asignar a una persona a una malla, entra a **Integrantes** y selecciona su 
 
 ## Uso básico
 
-- Para registrar una persona, entra a **Integrantes**, escribe nombre, cédula, teléfono, lugar de votación y cargo, y presiona **Guardar**.
+- Para registrar una persona, entra a **Integrantes**, escribe nombre, cédula, teléfono, institución / puesto de trabajo y cargo, y presiona **Guardar**.
 - Para editar una persona, entra a **Integrantes**, selecciónala en la tabla, cambia los datos y presiona **Guardar**.
 - Para eliminar una persona, entra a **Integrantes**, selecciónala en la tabla y presiona **Eliminar**.
 - Para iniciar un registro nuevo, presiona **Limpiar**.
 - Para ver los informes, usa los botones **Malla de transmisión** y **Malla de recolección**.
 
+## Si la aplicación sigue igual después de hacer `git pull`
+
+- Cierra completamente la ventana de la aplicación y vuelve a abrirla.
+- Confirma que estás ejecutando el archivo `app.py` de esta carpeta actualizada.
+- Desde la carpeta del repositorio ejecuta `python app.py` otra vez.
+- La pantalla actualizada muestra debajo del título este texto: **Versión: secciones por botones + institución/puesto de trabajo**.
+
 ## Archivo de datos
 
 Cuando se ejecuta la aplicación, se crea automáticamente el archivo `equipo_plato.db` en esta carpeta. Ese archivo contiene la base de datos local.
 
-Si ya tenías una base creada con una versión anterior de la aplicación, los campos **Cargo** y **Lugar de votación** se agregan automáticamente al abrir el programa. Los integrantes existentes quedan inicialmente como **Recolector** y con el lugar de votación vacío hasta que los edites.
+Si ya tenías una base creada con una versión anterior de la aplicación, los campos **Cargo** e **Institución / puesto de trabajo** se agregan automáticamente al abrir el programa. Los integrantes existentes quedan inicialmente como **Recolector** y con la institución / puesto de trabajo vacío hasta que los edites.
