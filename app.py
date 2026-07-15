@@ -19,14 +19,50 @@ DB_PATH = Path(__file__).with_name("equipo_plato.db")
 CARGOS = ("Recolector", "Transmisor", "Backup", "Coordinador de puesto")
 MALLA_TRANSMISION_CARGOS = ("Transmisor", "Backup", "Coordinador de puesto")
 MALLA_RECOLECCION_CARGOS = ("Recolector", "Backup")
-TABLE_COLUMNS = ("nombre", "cedula", "telefono", "puesto_trabajo", "cargo")
+TABLE_COLUMNS = ("puesto_trabajo", "cedula", "nombre", "telefono", "cargo", "mesa_inicial", "mesa_final")
 COLUMN_TITLES = {
-    "nombre": "Nombre",
+    "puesto_trabajo": "Puesto",
     "cedula": "Cédula",
-    "telefono": "Teléfono",
-    "puesto_trabajo": "Institución / puesto de trabajo",
+    "nombre": "Nombre",
+    "telefono": "Celular",
     "cargo": "Cargo",
+    "mesa_inicial": "M. inicial",
+    "mesa_final": "M. final",
 }
+
+DEFAULT_MEMBERS = [
+    ("IED MARIA ALFARO DE OSPINO", "1081910709", "EDITH SABRINA ANDRADES BELTRAN", "", "Transmisor", "1", "8"),
+    ("IED MARIA ALFARO DE OSPINO", "1004284951", "STEFANY YISEL MUÑOZ BARRIOS", "", "Coordinador de puesto", "9", "17"),
+    ("ED GABRIEL ESCOBAR BALLESTA", "1081910817", "ERIKA PATRICIA VARGAS ARIAS", "", "Coordinador de puesto", "1", "6"),
+    ("ED GABRIEL ESCOBAR BALLESTA", "1081914761", "MILADIS TAPIAS ACOSTA", "", "Transmisor", "7", "12"),
+    ("GABRIEL ESCOBAR B. SD GABRIELITO", "1033705367", "MARIA FERNANDA MORALES PACHECO", "", "Coordinador de puesto", "1", "10"),
+    ("GABRIEL ESCOBAR B. SD GABRIELITO", "1081927714", "PAULA FERNANDA OSPINA MACIAS", "", "Transmisor", "11", "20"),
+    ("GABRIEL ESCOBAR B. SD GABRIELITO", "1083460271", "MERLIS PATRICIA ACUÑA IBAÑEZ", "", "Transmisor", "21", "30"),
+    ("GABRIEL ESCOBAR B. SD GABRIELITO", "1081913155", "JAVIER DE JESUS CAÑA GAMARRA", "", "Transmisor", "31", "40"),
+    ("IED JUANA ARIAS DE BENAVIDES", "1081924702", "LUIS ALLFREDO CORTINA MEDINA", "", "Coordinador de puesto", "1", "7"),
+    ("IED JUANA ARIAS DE BENAVIDES", "1081916864", "GRISELDINA MARIA SAUMETH ARIAS", "", "Transmisor", "8", "15"),
+    ("IED JUANA ARIAS DE BENAVIDES", "1081908047", "YULEINIS ANDREA GOMEZ CARET", "", "Transmisor", "16", "23"),
+    ("IED VICTOR CAMARGO ALVAREZ", "1081917282", "SINDY JOHANIS RUIZ MADARIAGA", "", "Coordinador de puesto", "1", "8"),
+    ("COORDINADOR PRINCIPAL", "", "OSCAR TOVAR VERBEL", "", "Coordinador de puesto", "", ""),
+    ("BACKUP", "1080570852", "WENDY PAOLA JIMENEZ", "3106246847", "Backup", "", ""),
+    ("BACKUP", "1045758017", "DAYANA VANESSA LEIVA ACUÑA", "3212599505", "Backup", "", ""),
+    ("BACKUP", "1080570490", "IVAN ALFARO VISBAL", "3046681831", "Backup", "", ""),
+    ("IED MARIA ALFARO DE OSPINO", "1.140.841.860", "GERALDINE OMAIRA MEDINA SAUMETH", "3024269991", "Recolector", "", ""),
+    ("IED MARIA ALFARO DE OSPINO", "1.080.570.577", "JORGE LUIS MUÑOZ BARRIOS", "3002147276", "Recolector", "", ""),
+    ("IED MARIA ALFARO DE OSPINO", "1.081.910.899", "MARIA ALEJANDRA MUÑOZ FONSECA", "3226816651", "Backup", "", ""),
+    ("IED GABRIEL ESCOBAR BALLESTA", "1.081.920.063", "KATIA MILENA PULGAR SALAZAR", "", "Recolector", "", ""),
+    ("IED GABRIEL ESCOBAR BALLESTA", "17.591.656", "DAVID GUILLERMO MENCO ZAFRA", "", "Recolector", "", ""),
+    ("IED GABRIEL ESCOBAR B. SD GABRIELITO", "1.095.787.195", "MARYORI PAOLA ARREDONDO BAYONA", "3017156177", "Recolector", "", ""),
+    ("IED GABRIEL ESCOBAR B. SD GABRIELITO", "1.081.910.371", "LUISA FERNANDA CIRO OROZCO", "3016049146", "Recolector", "", ""),
+    ("IED GABRIEL ESCOBAR B. SD GABRIELITO", "39.101.071", "YINA PAOLA MULFORD CHARRIS", "3243061991", "Recolector", "", ""),
+    ("IED GABRIEL ESCOBAR B. SD GABRIELITO", "1.193.535.357", "ANGY MILET GUTIERREZ AMARIS", "3008658504", "Recolector", "", ""),
+    ("IED GABRIEL ESCOBAR B. SD GABRIELITO", "1.081.914.873", "DEISY MARIA AGUILAR VIDES", "", "Backup", "", ""),
+    ("IED JUANA ARIAS DE BENAVIDES", "39.092.107", "LUZ KARIME MEDINA SAUMETH", "3007922216", "Recolector", "", ""),
+    ("IED JUANA ARIAS DE BENAVIDES", "1.081.909.702", "KATIA MILENA CAMPUZANO VARGAS", "", "Recolector", "", ""),
+    ("IED JUANA ARIAS DE BENAVIDES", "1.081.918.547", "MARIA FERNANDA DE AVILA RODRIGUEZ", "3112891891", "Recolector", "", ""),
+    ("IED JUANA ARIAS DE BENAVIDES", "12.594.318", "OSCAR ALFREDO CORTINA DE ARCO", "3007210690", "Backup", "", ""),
+    ("IED VICTOR CAMARGO ALVAREZ", "1.081.910.370", "LUCY MARCELA CIRO OROZCO", "3016123714", "Recolector", "", ""),
+]
 
 
 def _pdf_text(value: object) -> str:
@@ -54,8 +90,8 @@ def create_pdf(file_path: Path, title: str, rows: list[tuple[str, ...]]) -> None
     """Crea un PDF sencillo con los datos organizados en tabla."""
 
     headers = [COLUMN_TITLES[column] for column in TABLE_COLUMNS]
-    column_widths = [190, 90, 95, 255, 150]
-    column_limits = [28, 14, 15, 38, 24]
+    column_widths = [170, 90, 180, 95, 115, 65, 65]
+    column_limits = [25, 14, 27, 14, 18, 8, 8]
     start_x = 31
     table_width = sum(column_widths)
     header_y = 505
@@ -162,7 +198,16 @@ class MemberDatabase:
             "puesto_trabajo",
             "ALTER TABLE integrantes ADD COLUMN puesto_trabajo TEXT NOT NULL DEFAULT ''",
         )
+        self._ensure_column(
+            "mesa_inicial",
+            "ALTER TABLE integrantes ADD COLUMN mesa_inicial TEXT NOT NULL DEFAULT ''",
+        )
+        self._ensure_column(
+            "mesa_final",
+            "ALTER TABLE integrantes ADD COLUMN mesa_final TEXT NOT NULL DEFAULT ''",
+        )
         self._migrate_legacy_voting_place_data()
+        self.seed_default_members()
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.db_path)
@@ -177,7 +222,9 @@ class MemberDatabase:
                     cedula TEXT NOT NULL UNIQUE,
                     telefono TEXT NOT NULL,
                     puesto_trabajo TEXT NOT NULL DEFAULT '',
-                    cargo TEXT NOT NULL DEFAULT 'Recolector'
+                    cargo TEXT NOT NULL DEFAULT 'Recolector',
+                    mesa_inicial TEXT NOT NULL DEFAULT '',
+                    mesa_final TEXT NOT NULL DEFAULT ''
                 )
                 """
             )
@@ -208,40 +255,65 @@ class MemberDatabase:
                     """
                 )
 
+    def seed_default_members(self) -> None:
+        with self._connect() as connection:
+            total_members = connection.execute("SELECT COUNT(*) FROM integrantes").fetchone()[0]
+            if total_members:
+                return
+
+            connection.executemany(
+                """
+                INSERT INTO integrantes (
+                    puesto_trabajo, cedula, nombre, telefono, cargo, mesa_inicial, mesa_final
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                DEFAULT_MEMBERS,
+            )
+
     def list_members(
         self, cargos: tuple[str, ...] | None = None
-    ) -> list[tuple[int, str, str, str, str, str]]:
+    ) -> list[tuple[int, str, str, str, str, str, str, str]]:
         with self._connect() as connection:
             if cargos is None:
                 return connection.execute(
                     """
-                    SELECT id, nombre, cedula, telefono, puesto_trabajo, cargo
+                    SELECT id, puesto_trabajo, cedula, nombre, telefono, cargo, mesa_inicial, mesa_final
                     FROM integrantes
-                    ORDER BY nombre
+                    ORDER BY puesto_trabajo, cargo, nombre
                     """
                 ).fetchall()
 
             placeholders = ",".join("?" for _cargo in cargos)
             return connection.execute(
                 f"""
-                SELECT id, nombre, cedula, telefono, puesto_trabajo, cargo
+                SELECT id, puesto_trabajo, cedula, nombre, telefono, cargo, mesa_inicial, mesa_final
                 FROM integrantes
                 WHERE cargo IN ({placeholders})
-                ORDER BY cargo, nombre
+                ORDER BY puesto_trabajo, cargo, nombre
                 """,
                 cargos,
             ).fetchall()
 
     def add_member(
-        self, nombre: str, cedula: str, telefono: str, puesto_trabajo: str, cargo: str
+        self,
+        nombre: str,
+        cedula: str,
+        telefono: str,
+        puesto_trabajo: str,
+        cargo: str,
+        mesa_inicial: str,
+        mesa_final: str,
     ) -> None:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO integrantes (nombre, cedula, telefono, puesto_trabajo, cargo)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO integrantes (
+                    nombre, cedula, telefono, puesto_trabajo, cargo, mesa_inicial, mesa_final
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (nombre, cedula, telefono, puesto_trabajo, cargo),
+                (nombre, cedula, telefono, puesto_trabajo, cargo, mesa_inicial, mesa_final),
             )
 
     def update_member(
@@ -252,15 +324,27 @@ class MemberDatabase:
         telefono: str,
         puesto_trabajo: str,
         cargo: str,
+        mesa_inicial: str,
+        mesa_final: str,
     ) -> None:
         with self._connect() as connection:
             connection.execute(
                 """
                 UPDATE integrantes
-                SET nombre = ?, cedula = ?, telefono = ?, puesto_trabajo = ?, cargo = ?
+                SET nombre = ?, cedula = ?, telefono = ?, puesto_trabajo = ?,
+                    cargo = ?, mesa_inicial = ?, mesa_final = ?
                 WHERE id = ?
                 """,
-                (nombre, cedula, telefono, puesto_trabajo, cargo, member_id),
+                (
+                    nombre,
+                    cedula,
+                    telefono,
+                    puesto_trabajo,
+                    cargo,
+                    mesa_inicial,
+                    mesa_final,
+                    member_id,
+                ),
             )
 
     def delete_member(self, member_id: int) -> None:
@@ -284,6 +368,8 @@ class TeamApp(tk.Tk):
         self.telefono_var = tk.StringVar()
         self.puesto_trabajo_var = tk.StringVar()
         self.cargo_var = tk.StringVar(value=CARGOS[0])
+        self.mesa_inicial_var = tk.StringVar()
+        self.mesa_final_var = tk.StringVar()
 
         self._build_layout()
         self.show_home()
@@ -402,8 +488,18 @@ class TeamApp(tk.Tk):
             state="readonly",
         ).grid(row=2, column=1, padx=8, pady=8, sticky="ew")
 
+        ttk.Label(form, text="Mesa inicial").grid(row=2, column=2, padx=8, pady=8, sticky="w")
+        ttk.Entry(form, textvariable=self.mesa_inicial_var).grid(
+            row=2, column=3, padx=8, pady=8, sticky="ew"
+        )
+
+        ttk.Label(form, text="Mesa final").grid(row=3, column=0, padx=8, pady=8, sticky="w")
+        ttk.Entry(form, textvariable=self.mesa_final_var).grid(
+            row=3, column=1, padx=8, pady=8, sticky="ew"
+        )
+
         buttons = ttk.Frame(form)
-        buttons.grid(row=3, column=0, columnspan=4, padx=8, pady=(4, 10), sticky="e")
+        buttons.grid(row=4, column=0, columnspan=4, padx=8, pady=(4, 10), sticky="e")
         ttk.Button(buttons, text="Guardar", command=self.save_member).pack(side="left", padx=4)
         ttk.Button(buttons, text="Limpiar", command=self.clear_form).pack(side="left", padx=4)
         ttk.Button(buttons, text="Eliminar", command=self.delete_selected_member).pack(
@@ -448,11 +544,13 @@ class TeamApp(tk.Tk):
     def _create_table(self, parent: ttk.Frame) -> ttk.Treeview:
         table = ttk.Treeview(parent, columns=TABLE_COLUMNS, show="headings", height=14)
         widths = {
+            "puesto_trabajo": 220,
+            "cedula": 120,
             "nombre": 220,
-            "cedula": 130,
-            "telefono": 130,
-            "puesto_trabajo": 230,
-            "cargo": 180,
+            "telefono": 120,
+            "cargo": 150,
+            "mesa_inicial": 80,
+            "mesa_final": 80,
         }
         for column in TABLE_COLUMNS:
             table.heading(column, text=COLUMN_TITLES[column])
@@ -515,27 +613,44 @@ class TeamApp(tk.Tk):
         for item in table.get_children():
             table.delete(item)
 
-        for member_id, nombre, cedula, telefono, puesto_trabajo, cargo in self.database.list_members(
-            cargos
-        ):
+        for (
+            member_id,
+            puesto_trabajo,
+            cedula,
+            nombre,
+            telefono,
+            cargo,
+            mesa_inicial,
+            mesa_final,
+        ) in self.database.list_members(cargos):
             table.insert(
                 "",
                 "end",
                 iid=str(member_id),
-                values=(nombre, cedula, telefono, puesto_trabajo, cargo),
+                values=(
+                    puesto_trabajo,
+                    cedula,
+                    nombre,
+                    telefono,
+                    cargo,
+                    mesa_inicial,
+                    mesa_final,
+                ),
             )
 
-    def _validated_inputs(self) -> tuple[str, str, str, str, str] | None:
+    def _validated_inputs(self) -> tuple[str, str, str, str, str, str, str] | None:
         nombre = self.nombre_var.get().strip()
         cedula = self.cedula_var.get().strip()
         telefono = self.telefono_var.get().strip()
         puesto_trabajo = self.puesto_trabajo_var.get().strip()
         cargo = self.cargo_var.get().strip()
+        mesa_inicial = self.mesa_inicial_var.get().strip()
+        mesa_final = self.mesa_final_var.get().strip()
 
-        if not nombre or not cedula or not telefono or not puesto_trabajo or not cargo:
+        if not nombre or not cedula or not puesto_trabajo or not cargo:
             messagebox.showwarning(
                 "Campos incompletos",
-                "Complete nombre, cédula, teléfono, institución / puesto de trabajo y cargo.",
+                "Complete nombre, cédula, institución / puesto de trabajo y cargo.",
             )
             return None
 
@@ -543,17 +658,19 @@ class TeamApp(tk.Tk):
             messagebox.showwarning("Cargo inválido", "Seleccione un cargo válido de la lista.")
             return None
 
-        return nombre, cedula, telefono, puesto_trabajo, cargo
+        return nombre, cedula, telefono, puesto_trabajo, cargo, mesa_inicial, mesa_final
 
     def save_member(self) -> None:
         values = self._validated_inputs()
         if values is None:
             return
 
-        nombre, cedula, telefono, puesto_trabajo, cargo = values
+        nombre, cedula, telefono, puesto_trabajo, cargo, mesa_inicial, mesa_final = values
         try:
             if self.selected_member_id is None:
-                self.database.add_member(nombre, cedula, telefono, puesto_trabajo, cargo)
+                self.database.add_member(
+                    nombre, cedula, telefono, puesto_trabajo, cargo, mesa_inicial, mesa_final
+                )
                 messagebox.showinfo("Guardado", "Integrante registrado correctamente.")
             else:
                 self.database.update_member(
@@ -563,6 +680,8 @@ class TeamApp(tk.Tk):
                     telefono,
                     puesto_trabajo,
                     cargo,
+                    mesa_inicial,
+                    mesa_final,
                 )
                 messagebox.showinfo("Actualizado", "Integrante actualizado correctamente.")
         except sqlite3.IntegrityError:
@@ -578,14 +697,22 @@ class TeamApp(tk.Tk):
             return
 
         self.selected_member_id = int(selected[0])
-        nombre, cedula, telefono, puesto_trabajo, cargo = self.members_table.item(
-            selected[0], "values"
-        )
+        (
+            puesto_trabajo,
+            cedula,
+            nombre,
+            telefono,
+            cargo,
+            mesa_inicial,
+            mesa_final,
+        ) = self.members_table.item(selected[0], "values")
         self.nombre_var.set(nombre)
         self.cedula_var.set(cedula)
         self.telefono_var.set(telefono)
         self.puesto_trabajo_var.set(puesto_trabajo)
         self.cargo_var.set(cargo)
+        self.mesa_inicial_var.set(mesa_inicial)
+        self.mesa_final_var.set(mesa_final)
 
     def delete_selected_member(self) -> None:
         if self.selected_member_id is None:
@@ -608,6 +735,8 @@ class TeamApp(tk.Tk):
         self.telefono_var.set("")
         self.puesto_trabajo_var.set("")
         self.cargo_var.set(CARGOS[0])
+        self.mesa_inicial_var.set("")
+        self.mesa_final_var.set("")
         if hasattr(self, "members_table"):
             self.members_table.selection_remove(self.members_table.selection())
 
@@ -619,7 +748,7 @@ def print_diagnostic() -> None:
     print(APP_VERSION)
     print(f"Archivo ejecutado: {Path(__file__).resolve()}")
     print(f"Base de datos: {DB_PATH.resolve()}")
-    print("Campos: nombre, cédula, teléfono, institución / puesto de trabajo, cargo")
+    print("Campos: puesto, cédula, nombre, celular, cargo, mesa inicial y mesa final")
     print("Botones: Inicio, Integrantes, Malla de transmisión, Malla de recolección")
 
 

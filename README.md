@@ -19,9 +19,11 @@ La base de datos guarda estos campos por integrante:
 
 - Nombre
 - Cédula
-- Teléfono
+- Teléfono / celular
 - Institución / puesto de trabajo
 - Cargo
+- Mesa inicial
+- Mesa final
 
 Los cargos disponibles son:
 
@@ -39,7 +41,8 @@ La aplicación abre con un menú principal lateral de botones. Desde ese menú s
 - **Integrantes**: abre el formulario para crear, editar, limpiar o eliminar integrantes. También muestra el listado completo de integrantes registrados.
 - **Malla de transmisión**: muestra un informe/listado de integrantes con cargo **Transmisor**, **Backup** o **Coordinador de puesto**.
 - **Malla de recolección**: muestra un informe/listado de integrantes con cargo **Recolector** o **Backup**.
-- **Imprimir PDF**: exporta el listado visible de integrantes o de una malla a un archivo PDF.
+- **Imprimir PDF**: exporta el listado visible de integrantes o de una malla a un archivo PDF en tabla.
+- **Datos por defecto**: si la base de datos está vacía, la aplicación carga automáticamente la malla inicial de transmisores, recolectores, backups y coordinadores.
 
 Para asignar a una persona a una malla, entra a **Integrantes** y selecciona su **Cargo**. Por ejemplo, si seleccionas **Transmisor** o **Coordinador de puesto**, esa persona aparecerá en la **Malla de transmisión**. Si seleccionas **Recolector**, aparecerá en la **Malla de recolección**.
 
@@ -91,7 +94,7 @@ Notas:
 
 Cuando se ejecuta la aplicación, se crea automáticamente el archivo `equipo_plato.db` en esta carpeta. Ese archivo contiene la base de datos local.
 
-Si ya tenías una base creada con una versión anterior de la aplicación, los campos **Cargo** e **Institución / puesto de trabajo** se agregan automáticamente al abrir el programa. Los integrantes existentes quedan inicialmente como **Recolector** y con la institución / puesto de trabajo vacío hasta que los edites.
+Si ya tenías una base creada con una versión anterior de la aplicación, los campos **Cargo**, **Institución / puesto de trabajo**, **Mesa inicial** y **Mesa final** se agregan automáticamente al abrir el programa. Los datos por defecto solo se cargan si la tabla está vacía, para no mezclar información con registros que ya tengas.
 
 ## Verificación rápida de versión
 
