@@ -11,10 +11,10 @@ import sqlite3
 import sys
 from pathlib import Path
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 
 APP_TITLE = "Equipo de Transmisión y Recolección Plato"
-APP_VERSION = "Versión 2026-07-15: menú por botones + institución/puesto de trabajo"
+APP_VERSION = "Versión 0.2.2026-07-15"
 DB_PATH = Path(__file__).with_name("equipo_plato.db")
 CARGOS = ("Recolector", "Transmisor", "Backup", "Coordinador de puesto")
 MALLA_TRANSMISION_CARGOS = ("Transmisor", "Backup", "Coordinador de puesto")
@@ -27,6 +27,68 @@ COLUMN_TITLES = {
     "puesto_trabajo": "Institución / puesto de trabajo",
     "cargo": "Cargo",
 }
+
+
+def _pdf_text(value: object) -> str:
+    """Escapa texto para una cadena simple de PDF."""
+
+    return str(value).replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def _chunk_lines(lines: list[str], page_size: int = 42) -> list[list[str]]:
+    return [lines[index : index + page_size] for index in range(0, len(lines), page_size)] or [[]]
+
+
+def create_pdf(file_path: Path, title: str, rows: list[tuple[str, ...]]) -> None:
+    """Crea un PDF sencillo sin dependencias externas."""
+
+    headers = [COLUMN_TITLES[column] for column in TABLE_COLUMNS]
+    lines = [title, APP_VERSION, "", " | ".join(headers), "-" * 115]
+    lines.extend(" | ".join(str(value) for value in row) for row in rows)
+    pages = _chunk_lines(lines)
+
+    objects: list[bytes] = []
+    objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
+    page_refs = " ".join(f"{4 + index * 2} 0 R" for index in range(len(pages)))
+    objects.append(f"<< /Type /Pages /Kids [{page_refs}] /Count {len(pages)} >>".encode("latin-1"))
+    objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+
+    for index, page_lines in enumerate(pages):
+        page_number = 4 + index * 2
+        content_number = page_number + 1
+        objects.append(
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] "
+            f"/Resources << /Font << /F1 3 0 R >> >> /Contents {content_number} 0 R >>".encode(
+                "latin-1"
+            )
+        )
+        text_commands = ["BT", "/F1 10 Tf", "45 550 Td", "14 TL"]
+        for line in page_lines:
+            text_commands.append(f"({_pdf_text(line[:150])}) Tj")
+            text_commands.append("T*")
+        text_commands.append("ET")
+        stream = "\n".join(text_commands).encode("latin-1", errors="replace")
+        objects.append(b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream")
+
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for number, content in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{number} 0 obj\n".encode("ascii"))
+        pdf.extend(content)
+        pdf.extend(b"\nendobj\n")
+
+    xref_position = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
+    pdf.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    pdf.extend(
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_position}\n%%EOF\n".encode(
+            "ascii"
+        )
+    )
+    file_path.write_bytes(pdf)
 
 
 class MemberDatabase:
@@ -289,6 +351,11 @@ class TeamApp(tk.Tk):
         ttk.Button(buttons, text="Eliminar", command=self.delete_selected_member).pack(
             side="left", padx=4
         )
+        ttk.Button(
+            buttons,
+            text="Imprimir PDF",
+            command=lambda: self.export_table_to_pdf(self.members_table, "Integrantes registrados"),
+        ).pack(side="left", padx=4)
 
         table_frame = ttk.LabelFrame(self.integrantes_frame, text="Integrantes registrados")
         table_frame.grid(row=1, column=0, sticky="nsew")
@@ -300,8 +367,20 @@ class TeamApp(tk.Tk):
     def _build_report_frame(self) -> None:
         self.report_frame.rowconfigure(1, weight=1)
         self.report_frame.columnconfigure(0, weight=1)
-        self.report_title = ttk.Label(self.report_frame, font=("Arial", 14, "bold"))
-        self.report_title.grid(row=0, column=0, sticky="w", pady=(0, 10))
+
+        report_header = ttk.Frame(self.report_frame)
+        report_header.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        report_header.columnconfigure(0, weight=1)
+        self.report_title = ttk.Label(report_header, font=("Arial", 14, "bold"))
+        self.report_title.grid(row=0, column=0, sticky="w")
+        ttk.Button(
+            report_header,
+            text="Imprimir PDF",
+            command=lambda: self.export_table_to_pdf(
+                self.report_table, self.report_title.cget("text")
+            ),
+        ).grid(row=0, column=1, sticky="e")
+
         table_frame = ttk.LabelFrame(self.report_frame, text="Listado")
         table_frame.grid(row=1, column=0, sticky="nsew")
         table_frame.rowconfigure(0, weight=1)
@@ -352,6 +431,27 @@ class TeamApp(tk.Tk):
 
     def refresh_members_table(self) -> None:
         self.refresh_table(self.members_table)
+
+    def get_table_rows(self, table: ttk.Treeview) -> list[tuple[str, ...]]:
+        return [tuple(table.item(item, "values")) for item in table.get_children()]
+
+    def export_table_to_pdf(self, table: ttk.Treeview, title: str) -> None:
+        rows = self.get_table_rows(table)
+        if not rows:
+            messagebox.showwarning("Sin datos", "No hay datos para imprimir en PDF.")
+            return
+
+        file_name = filedialog.asksaveasfilename(
+            title="Guardar lista en PDF",
+            defaultextension=".pdf",
+            filetypes=(("Archivo PDF", "*.pdf"),),
+            initialfile=f"{title.lower().replace(' ', '_').replace(':', '')}.pdf",
+        )
+        if not file_name:
+            return
+
+        create_pdf(Path(file_name), title, rows)
+        messagebox.showinfo("PDF creado", f"Lista guardada en:\n{file_name}")
 
     def refresh_table(self, table: ttk.Treeview, cargos: tuple[str, ...] | None = None) -> None:
         for item in table.get_children():
