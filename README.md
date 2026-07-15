@@ -1,6 +1,6 @@
 # Equipo de Transmisión y Recolección Plato
 
-**Versión actual:** `0.2.2026-07-15`
+**Versión actual:** `0.3.2026-07-15`
 
 Aplicación sencilla para manejar la información de integrantes de un grupo llamado **Equipo de Transmisión y Recolección Plato**.
 
@@ -70,6 +70,23 @@ Para asignar a una persona a una malla, entra a **Integrantes** y selecciona su 
 - Desde la carpeta del repositorio ejecuta `python app.py` otra vez.
 - La pantalla actualizada muestra debajo del título este texto: **Versión: secciones por botones + institución/puesto de trabajo**.
 
+## Empaquetar como programa
+
+Para convertir la aplicación en un ejecutable pequeño puedes usar PyInstaller:
+
+```bash
+python -m pip install pyinstaller
+python build_app.py
+```
+
+El ejecutable queda en la carpeta `dist/` con el nombre `EquipoPlato`. En Windows normalmente será `dist\EquipoPlato.exe`.
+
+Notas:
+
+- El archivo `equipo_plato.db` se crea junto al ejecutable cuando se abre el programa.
+- Si ya tienes datos en una base anterior, copia `equipo_plato.db` a la misma carpeta donde ejecutes el programa.
+- Si PyInstaller no está instalado, `python build_app.py` te mostrará el comando para instalarlo.
+
 ## Archivo de datos
 
 Cuando se ejecuta la aplicación, se crea automáticamente el archivo `equipo_plato.db` en esta carpeta. Ese archivo contiene la base de datos local.
@@ -86,7 +103,7 @@ python app.py --check
 
 La salida debe mostrar:
 
-- `Versión 0.2.2026-07-15`
+- `Versión 0.3.2026-07-15`
 - La ruta exacta del archivo `app.py` que estás ejecutando.
 - Los campos actuales: nombre, cédula, teléfono, institución / puesto de trabajo y cargo.
 - Los botones actuales en el menú lateral: Inicio, Integrantes, Malla de transmisión y Malla de recolección.

@@ -14,7 +14,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 APP_TITLE = "Equipo de Transmisión y Recolección Plato"
-APP_VERSION = "Versión 0.2.2026-07-15"
+APP_VERSION = "Versión 0.3.2026-07-15"
 DB_PATH = Path(__file__).with_name("equipo_plato.db")
 CARGOS = ("Recolector", "Transmisor", "Backup", "Coordinador de puesto")
 MALLA_TRANSMISION_CARGOS = ("Transmisor", "Backup", "Coordinador de puesto")
@@ -39,13 +39,28 @@ def _chunk_lines(lines: list[str], page_size: int = 42) -> list[list[str]]:
     return [lines[index : index + page_size] for index in range(0, len(lines), page_size)] or [[]]
 
 
+def _table_pages(rows: list[tuple[str, ...]], rows_per_page: int = 18) -> list[list[tuple[str, ...]]]:
+    return [rows[index : index + rows_per_page] for index in range(0, len(rows), rows_per_page)] or [[]]
+
+
+def _fit_cell_text(value: object, max_chars: int) -> str:
+    text = str(value).replace("\n", " ").strip()
+    if len(text) <= max_chars:
+        return text
+    return f"{text[: max_chars - 3]}..."
+
+
 def create_pdf(file_path: Path, title: str, rows: list[tuple[str, ...]]) -> None:
-    """Crea un PDF sencillo sin dependencias externas."""
+    """Crea un PDF sencillo con los datos organizados en tabla."""
 
     headers = [COLUMN_TITLES[column] for column in TABLE_COLUMNS]
-    lines = [title, APP_VERSION, "", " | ".join(headers), "-" * 115]
-    lines.extend(" | ".join(str(value) for value in row) for row in rows)
-    pages = _chunk_lines(lines)
+    column_widths = [190, 90, 95, 255, 150]
+    column_limits = [28, 14, 15, 38, 24]
+    start_x = 31
+    table_width = sum(column_widths)
+    header_y = 505
+    row_height = 24
+    pages = _table_pages(rows)
 
     objects: list[bytes] = []
     objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
@@ -53,7 +68,7 @@ def create_pdf(file_path: Path, title: str, rows: list[tuple[str, ...]]) -> None
     objects.append(f"<< /Type /Pages /Kids [{page_refs}] /Count {len(pages)} >>".encode("latin-1"))
     objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
 
-    for index, page_lines in enumerate(pages):
+    for index, page_rows in enumerate(pages):
         page_number = 4 + index * 2
         content_number = page_number + 1
         objects.append(
@@ -62,13 +77,56 @@ def create_pdf(file_path: Path, title: str, rows: list[tuple[str, ...]]) -> None
                 "latin-1"
             )
         )
-        text_commands = ["BT", "/F1 10 Tf", "45 550 Td", "14 TL"]
-        for line in page_lines:
-            text_commands.append(f"({_pdf_text(line[:150])}) Tj")
-            text_commands.append("T*")
-        text_commands.append("ET")
-        stream = "\n".join(text_commands).encode("latin-1", errors="replace")
-        objects.append(b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream")
+
+        commands = [
+            "BT",
+            "/F1 16 Tf",
+            f"40 560 Td ({_pdf_text(title)}) Tj",
+            "ET",
+            "BT",
+            "/F1 9 Tf",
+            f"40 542 Td ({_pdf_text(APP_VERSION)} - Página {index + 1} de {len(pages)}) Tj",
+            "ET",
+            "0.85 w",
+        ]
+
+        def draw_row(y_position: int, values: list[object], is_header: bool = False) -> None:
+            fill = "0.90 g" if is_header else "1 g"
+            commands.extend(
+                [
+                    fill,
+                    f"{start_x} {y_position} {table_width} {row_height} re f",
+                    "0 g",
+                    f"{start_x} {y_position} {table_width} {row_height} re S",
+                ]
+            )
+            current_x = start_x
+            for width, value, limit in zip(column_widths, values, column_limits):
+                commands.append(f"{current_x} {y_position} {width} {row_height} re S")
+                commands.extend(
+                    [
+                        "BT",
+                        "/F1 8 Tf" if not is_header else "/F1 8.5 Tf",
+                        f"{current_x + 4} {y_position + 9} Td ({_pdf_text(_fit_cell_text(value, limit))}) Tj",
+                        "ET",
+                    ]
+                )
+                current_x += width
+
+        draw_row(header_y, headers, is_header=True)
+        current_y = header_y - row_height
+        for row in page_rows:
+            draw_row(current_y, list(row))
+            current_y -= row_height
+
+        stream = "\n".join(commands).encode("latin-1", errors="replace")
+        objects.append(
+            b"<< /Length "
+            + str(len(stream)).encode("ascii")
+            + b" >>\nstream\n"
+            + stream
+            + b"\nendstream"
+        )
 
     pdf = bytearray(b"%PDF-1.4\n")
     offsets = [0]
