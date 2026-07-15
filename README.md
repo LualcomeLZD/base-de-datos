@@ -32,7 +32,7 @@ La cédula no se puede repetir, para evitar registrar dos veces a la misma perso
 
 ## Opciones de la interfaz
 
-La aplicación abre en una pantalla de inicio con botones. Desde esa pantalla se puede entrar a cada sección sin que todo se muestre de golpe:
+La aplicación abre con un menú principal lateral de botones. Desde ese menú se entra a cada sección sin que todo se muestre de golpe:
 
 - **Integrantes**: abre el formulario para crear, editar, limpiar o eliminar integrantes. También muestra el listado completo de integrantes registrados.
 - **Malla de transmisión**: muestra un informe/listado de integrantes con cargo **Transmisor**, **Backup** o **Coordinador de puesto**.
@@ -49,7 +49,7 @@ Para asignar a una persona a una malla, entra a **Integrantes** y selecciona su 
    python app.py
    ```
 
-3. Usa la pantalla inicial para entrar a **Integrantes**, **Malla de transmisión** o **Malla de recolección**.
+3. Usa el menú principal lateral para entrar a **Integrantes**, **Malla de transmisión** o **Malla de recolección**.
 
 ## Uso básico
 
@@ -85,6 +85,6 @@ La salida debe mostrar:
 - `Versión 2026-07-15: menú por botones + institución/puesto de trabajo`
 - La ruta exacta del archivo `app.py` que estás ejecutando.
 - Los campos actuales: nombre, cédula, teléfono, institución / puesto de trabajo y cargo.
-- Los botones actuales: Inicio, Integrantes, Malla de transmisión y Malla de recolección.
+- Los botones actuales en el menú lateral: Inicio, Integrantes, Malla de transmisión y Malla de recolección.
 
 Si esa ruta no es la carpeta donde hiciste `git pull`, entonces estás abriendo una copia vieja del programa.

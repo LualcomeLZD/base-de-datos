@@ -169,23 +169,39 @@ class TeamApp(tk.Tk):
         self.show_home()
 
     def _build_layout(self) -> None:
-        title = ttk.Label(self, text=APP_TITLE, font=("Arial", 18, "bold"))
-        title.pack(pady=(16, 4))
-        ttk.Label(self, text=APP_VERSION, font=("Arial", 10, "italic")).pack(pady=(0, 8))
+        header = ttk.Frame(self, padding=(18, 14, 18, 8))
+        header.pack(fill="x")
+        ttk.Label(header, text=APP_TITLE, font=("Arial", 20, "bold")).pack(anchor="w")
+        ttk.Label(header, text=APP_VERSION, font=("Arial", 10, "italic")).pack(anchor="w")
 
-        menu = ttk.Frame(self)
-        menu.pack(fill="x", padx=16, pady=(0, 10))
-        ttk.Button(menu, text="Inicio", command=self.show_home).pack(side="left", padx=4)
-        ttk.Button(menu, text="Integrantes", command=self.show_integrantes).pack(side="left", padx=4)
-        ttk.Button(menu, text="Malla de transmisión", command=self.show_malla_transmision).pack(
-            side="left", padx=4
-        )
-        ttk.Button(menu, text="Malla de recolección", command=self.show_malla_recoleccion).pack(
-            side="left", padx=4
-        )
+        main_area = ttk.Frame(self, padding=(16, 8, 16, 16))
+        main_area.pack(fill="both", expand=True)
+        main_area.columnconfigure(1, weight=1)
+        main_area.rowconfigure(0, weight=1)
 
-        self.content = ttk.Frame(self)
-        self.content.pack(fill="both", expand=True, padx=16, pady=(0, 16))
+        navigation = ttk.LabelFrame(main_area, text="Menú principal", padding=12)
+        navigation.grid(row=0, column=0, sticky="ns", padx=(0, 14))
+
+        button_options = {"fill": "x", "pady": 6, "ipady": 10}
+        ttk.Button(navigation, text="Inicio", command=self.show_home).pack(**button_options)
+        ttk.Button(navigation, text="Integrantes", command=self.show_integrantes).pack(
+            **button_options
+        )
+        ttk.Button(
+            navigation, text="Malla de transmisión", command=self.show_malla_transmision
+        ).pack(**button_options)
+        ttk.Button(
+            navigation, text="Malla de recolección", command=self.show_malla_recoleccion
+        ).pack(**button_options)
+
+        ttk.Label(
+            navigation,
+            text="Los formularios e informes\nse abren al presionar\nsu botón.",
+            justify="center",
+        ).pack(pady=(18, 0))
+
+        self.content = ttk.Frame(main_area)
+        self.content.grid(row=0, column=1, sticky="nsew")
         self.content.columnconfigure(0, weight=1)
         self.content.rowconfigure(0, weight=1)
 
