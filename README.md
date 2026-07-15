@@ -71,3 +71,20 @@ Para asignar a una persona a una malla, entra a **Integrantes** y selecciona su 
 Cuando se ejecuta la aplicación, se crea automáticamente el archivo `equipo_plato.db` en esta carpeta. Ese archivo contiene la base de datos local.
 
 Si ya tenías una base creada con una versión anterior de la aplicación, los campos **Cargo** e **Institución / puesto de trabajo** se agregan automáticamente al abrir el programa. Los integrantes existentes quedan inicialmente como **Recolector** y con la institución / puesto de trabajo vacío hasta que los edites.
+
+## Verificación rápida de versión
+
+Si después de hacer `git pull` la ventana se ve como la versión vieja, ejecuta este comando desde la carpeta del repositorio:
+
+```bash
+python app.py --check
+```
+
+La salida debe mostrar:
+
+- `Versión 2026-07-15: menú por botones + institución/puesto de trabajo`
+- La ruta exacta del archivo `app.py` que estás ejecutando.
+- Los campos actuales: nombre, cédula, teléfono, institución / puesto de trabajo y cargo.
+- Los botones actuales: Inicio, Integrantes, Malla de transmisión y Malla de recolección.
+
+Si esa ruta no es la carpeta donde hiciste `git pull`, entonces estás abriendo una copia vieja del programa.

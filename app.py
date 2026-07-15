@@ -8,12 +8,13 @@ instalaciones.
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 APP_TITLE = "Equipo de Transmisión y Recolección Plato"
-APP_VERSION = "Versión: secciones por botones + institución/puesto de trabajo"
+APP_VERSION = "Versión 2026-07-15: menú por botones + institución/puesto de trabajo"
 DB_PATH = Path(__file__).with_name("equipo_plato.db")
 CARGOS = ("Recolector", "Transmisor", "Backup", "Coordinador de puesto")
 MALLA_TRANSMISION_CARGOS = ("Transmisor", "Backup", "Coordinador de puesto")
@@ -202,18 +203,29 @@ class TeamApp(tk.Tk):
         self.home_frame.columnconfigure(0, weight=1)
         ttk.Label(
             self.home_frame,
+            text="PANTALLA INICIAL - VERSIÓN NUEVA",
+            font=("Arial", 18, "bold"),
+            foreground="#0a6f32",
+        ).grid(row=0, column=0, pady=(28, 8))
+        ttk.Label(
+            self.home_frame,
+            text="Si ves esta pantalla, sí estás ejecutando el archivo actualizado.",
+            font=("Arial", 11),
+        ).grid(row=1, column=0, pady=(0, 16))
+        ttk.Label(
+            self.home_frame,
             text="Seleccione una opción para continuar",
             font=("Arial", 16, "bold"),
-        ).grid(row=0, column=0, pady=(36, 16))
+        ).grid(row=2, column=0, pady=(0, 16))
         ttk.Button(self.home_frame, text="Integrantes", command=self.show_integrantes).grid(
-            row=1, column=0, pady=8, ipadx=50, ipady=10
+            row=3, column=0, pady=8, ipadx=50, ipady=10
         )
         ttk.Button(
             self.home_frame, text="Malla de transmisión", command=self.show_malla_transmision
-        ).grid(row=2, column=0, pady=8, ipadx=50, ipady=10)
+        ).grid(row=4, column=0, pady=8, ipadx=50, ipady=10)
         ttk.Button(
             self.home_frame, text="Malla de recolección", command=self.show_malla_recoleccion
-        ).grid(row=3, column=0, pady=8, ipadx=50, ipady=10)
+        ).grid(row=5, column=0, pady=8, ipadx=50, ipady=10)
 
     def _build_integrantes_frame(self) -> None:
         self.integrantes_frame.rowconfigure(1, weight=1)
@@ -426,7 +438,22 @@ class TeamApp(tk.Tk):
             self.members_table.selection_remove(self.members_table.selection())
 
 
+def print_diagnostic() -> None:
+    """Muestra datos para confirmar qué archivo app.py se está ejecutando."""
+
+    print(APP_TITLE)
+    print(APP_VERSION)
+    print(f"Archivo ejecutado: {Path(__file__).resolve()}")
+    print(f"Base de datos: {DB_PATH.resolve()}")
+    print("Campos: nombre, cédula, teléfono, institución / puesto de trabajo, cargo")
+    print("Botones: Inicio, Integrantes, Malla de transmisión, Malla de recolección")
+
+
 def main() -> None:
+    if "--check" in sys.argv or "--version" in sys.argv:
+        print_diagnostic()
+        return
+
     app = TeamApp()
     app.mainloop()
 
